@@ -6,30 +6,35 @@
     <title>Daily Work Log & Invoice</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
-        body { background-color: #f3f4f6; }
-        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        select, input { -webkit-appearance: none; }
     </style>
 </head>
-<body class="p-4">
+<body class="p-4 pb-10">
     <div class="max-w-md mx-auto">
-        <header class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">Work Log Tracker</h1>
-            <p class="text-sm text-gray-500">Log your daily work and generate invoices</p>
+        <header class="mb-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Work Log</h1>
+                <p class="text-xs text-gray-500 font-medium uppercase tracking-wider">Major PM Services</p>
+            </div>
+            <div class="text-right">
+                <p id="currentDate" class="text-sm font-bold text-blue-600"></p>
+            </div>
         </header>
 
         <!-- Form Section -->
         <div class="card p-6 mb-6">
-            <h2 class="text-lg font-semibold mb-4 border-b pb-2">New Entry</h2>
-            <form id="workForm" class="space-y-4">
+            <h2 class="text-sm font-bold text-gray-400 uppercase mb-4 tracking-widest">New Entry</h2>
+            <form id="workForm" class="space-y-5">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">DATE</label>
-                    <input type="date" id="date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    <label class="block text-xs font-bold text-gray-600 mb-1">DATE</label>
+                    <input type="date" id="date" required class="w-full bg-gray-50 rounded-xl border-0 p-3 text-gray-800 focus:ring-2 focus:ring-blue-500 shadow-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">SITE</label>
-                    <select id="site" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    <label class="block text-xs font-bold text-gray-600 mb-1">SITE</label>
+                    <select id="site" required class="w-full bg-gray-50 rounded-xl border-0 p-3 text-gray-800 focus:ring-2 focus:ring-blue-500 shadow-sm">
                         <option value="37 meadow St">37 meadow St</option>
                         <option value="48 California St">48 California St</option>
                         <option value="7 Gumflats way Botanic ridge">7 Gumflats way Botanic ridge</option>
@@ -39,52 +44,76 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">START</label>
-                        <input type="time" id="start" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">START (10m step)</label>
+                        <select id="start" required class="w-full bg-gray-50 rounded-xl border-0 p-3 text-gray-800 focus:ring-2 focus:ring-blue-500 shadow-sm"></select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">FINISH</label>
-                        <input type="time" id="finish" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">FINISH (10m step)</label>
+                        <select id="finish" required class="w-full bg-gray-50 rounded-xl border-0 p-3 text-gray-800 focus:ring-2 focus:ring-blue-500 shadow-sm"></select>
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Save Entry</button>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all">Save Daily Log</button>
             </form>
         </div>
 
         <!-- List Section -->
         <div class="card p-6 mb-6">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold">Recent Logs</h2>
-                <button onclick="clearLogs()" class="text-xs text-red-500 hover:underline">Clear All</button>
+                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Recent Logs</h2>
+                <button onclick="clearLogs()" class="text-xs font-bold text-red-400 hover:text-red-600">RESET</button>
             </div>
-            <div id="logList" class="space-y-3 max-h-64 overflow-y-auto">
+            <div id="logList" class="space-y-3 max-h-80 overflow-y-auto pr-1">
                 <!-- Logs will appear here -->
+            </div>
+            
+            <!-- Summary Section -->
+            <div class="mt-6 pt-4 border-t border-dashed border-gray-200">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-sm text-gray-500">Total Hours</span>
+                    <span id="totalHoursDisplay" class="font-bold text-gray-800">0.00 hrs</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-500 font-bold">Total Amount</span>
+                    <span id="totalAmountDisplay" class="text-xl font-black text-blue-600">$0.00</span>
+                </div>
             </div>
         </div>
 
         <!-- Action Section -->
-        <div class="space-y-3">
-            <button onclick="exportToExcel()" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition flex items-center justify-center">
+        <div class="grid grid-cols-1 gap-3">
+            <button onclick="exportToExcel()" class="w-full bg-gray-800 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center active:scale-[0.98] transition-all">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 Download Excel Invoice
             </button>
-            <button onclick="sendEmail()" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                Send to ben@majorpm.com.au
-            </button>
+            <p class="text-[10px] text-center text-gray-400 uppercase tracking-tighter">Send to: ben@majorpm.com.au</p>
         </div>
-        
-        <footer class="mt-8 text-center text-xs text-gray-400">
-            <p>Auto-send scheduled for 2nd & 4th Friday</p>
-        </footer>
     </div>
 
     <script>
         const RATE = 33;
         let logs = JSON.parse(localStorage.getItem('workLogs') || '[]');
 
-        // Initialize Form
+        // Generate 10-minute intervals for time selects
+        function populateTimeSelects() {
+            const startSelect = document.getElementById('start');
+            const finishSelect = document.getElementById('finish');
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 10) {
+                    const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    const opt1 = new Option(time, time);
+                    const opt2 = new Option(time, time);
+                    startSelect.add(opt1);
+                    finishSelect.add(opt2);
+                }
+            }
+            startSelect.value = "08:00";
+            finishSelect.value = "16:00";
+        }
+
+        // Initialize
         document.getElementById('date').valueAsDate = new Date();
+        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+        populateTimeSelects();
 
         const form = document.getElementById('workForm');
         form.addEventListener('submit', (e) => {
@@ -95,11 +124,10 @@
             const start = document.getElementById('start').value;
             const finish = document.getElementById('finish').value;
 
-            // Calculate hours
             const startTime = new Date(`2000-01-01T${start}`);
             const finishTime = new Date(`2000-01-01T${finish}`);
             let diff = (finishTime - startTime) / 1000 / 60 / 60;
-            if (diff < 0) diff += 24; // Handle overnight shifts if any
+            if (diff < 0) diff += 24;
 
             const totalHours = diff.toFixed(2);
             const remark = (diff * RATE).toFixed(2);
@@ -110,13 +138,11 @@
                 start,
                 finish,
                 totalHours,
-                remark: `$${remark} AUD`
+                remark: `$${remark}`
             };
 
             logs.push(entry);
             saveAndRefresh();
-            form.reset();
-            document.getElementById('date').valueAsDate = new Date();
         });
 
         function saveAndRefresh() {
@@ -126,23 +152,37 @@
 
         function renderLogs() {
             const list = document.getElementById('logList');
-            list.innerHTML = logs.length === 0 ? '<p class="text-gray-400 text-center py-4">No logs yet</p>' : '';
+            list.innerHTML = logs.length === 0 ? '<p class="text-gray-400 text-center py-8 text-sm italic">No logs recorded yet.</p>' : '';
             
+            let totalH = 0;
+            let totalA = 0;
+
             logs.slice().reverse().forEach((log, index) => {
+                totalH += parseFloat(log.totalHours);
+                totalA += parseFloat(log.remark.replace('$', ''));
+
                 const div = document.createElement('div');
-                div.className = 'p-3 border rounded-lg text-sm bg-gray-50 flex justify-between items-center';
+                div.className = 'p-4 rounded-2xl text-sm bg-gray-50 border border-gray-100 flex justify-between items-center animate-in fade-in slide-in-from-bottom-2 duration-300';
                 div.innerHTML = `
-                    <div>
-                        <div class="font-bold text-gray-700">${log.date} - ${log.site}</div>
-                        <div class="text-gray-500">${log.start} ~ ${log.finish} (${log.totalHours} hrs)</div>
-                        <div class="text-blue-600 font-semibold">${log.remark}</div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-black text-gray-800">${log.date.split('-').slice(1).reverse().join('/')}</span>
+                            <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">${log.site.split(' ')[0]}...</span>
+                        </div>
+                        <div class="text-xs text-gray-500 font-medium">${log.start} - ${log.finish} (${log.totalHours} hrs)</div>
                     </div>
-                    <button onclick="deleteLog(${logs.length - 1 - index})" class="text-red-400 hover:text-red-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
+                    <div class="text-right flex items-center gap-3">
+                        <span class="font-bold text-gray-800">${log.remark}</span>
+                        <button onclick="deleteLog(${logs.length - 1 - index})" class="text-gray-300 hover:text-red-500 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
                 `;
                 list.appendChild(div);
             });
+
+            document.getElementById('totalHoursDisplay').innerText = `${totalH.toFixed(2)} hrs`;
+            document.getElementById('totalAmountDisplay').innerText = `$${totalA.toFixed(2)}`;
         }
 
         function deleteLog(index) {
@@ -151,7 +191,7 @@
         }
 
         function clearLogs() {
-            if(confirm('Are you sure you want to clear all logs?')) {
+            if(confirm('Reset all logs for the new period?')) {
                 logs = [];
                 saveAndRefresh();
             }
@@ -167,21 +207,14 @@
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+            
+            // Set column widths
+            ws['!cols'] = [{wch: 12}, {wch: 30}, {wch: 10}, {wch: 10}, {wch: 15}, {wch: 15}];
+
             XLSX.utils.book_append_sheet(wb, ws, "Invoice");
-            XLSX.writeFile(wb, `Invoice_${new Date().toISOString().slice(0,10)}.xlsx`);
+            XLSX.writeFile(wb, `Invoice_MajorPM_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
-        async function sendEmail() {
-            if (logs.length === 0) return alert('No logs to send');
-            
-            // Note: In a real web app, you'd use EmailJS or a backend to send the Excel.
-            // Since we can't easily attach a generated binary file in pure client-side EmailJS without a server,
-            // we will simulate the process and provide instructions.
-            
-            alert('In a production environment, this would send the Excel file to ben@majorpm.com.au.\n\nFor now, please use the "Download Excel" button and attach it to an email.');
-        }
-
-        // Initial render
         renderLogs();
     </script>
 </body>
