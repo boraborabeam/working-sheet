@@ -2,39 +2,87 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Work Log & Invoice</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Major PM - Work Log Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .card { background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        select, input { -webkit-appearance: none; }
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .card { background: white; border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+        .login-overlay { position: fixed; inset: 0; background: #f8fafc; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .btn-primary { background: #2563eb; color: white; transition: all 0.2s; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2); }
+        .btn-primary:active { transform: scale(0.96); }
+        select, input { font-size: 16px !important; background-color: #f1f5f9 !important; border: none !important; border-radius: 12px !important; }
     </style>
 </head>
-<body class="p-4 pb-10">
-    <div class="max-w-md mx-auto">
-        <header class="mb-6 flex justify-between items-end">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Work Log</h1>
-                <p class="text-xs text-gray-500 font-medium uppercase tracking-wider">Major PM Services</p>
+<body class="p-4 max-w-md mx-auto pb-20">
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay hidden">
+        <div class="w-full max-w-xs text-center space-y-6">
+            <div class="space-y-2">
+                <h1 class="text-3xl font-black text-gray-900 tracking-tight text-blue-600">Major PM</h1>
+                <p class="text-sm font-bold text-gray-400 uppercase tracking-widest">Work Log Tracker</p>
             </div>
-            <div class="text-right">
-                <p id="currentDate" class="text-sm font-bold text-blue-600"></p>
+            <div class="card p-8 space-y-4">
+                <div class="space-y-2 text-left">
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">ID</p>
+                    <input type="text" id="adminId" placeholder="admin" class="w-full p-4 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="space-y-2 text-left">
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Password</p>
+                    <input type="password" id="adminPw" placeholder="•••••••" class="w-full p-4 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button onclick="login()" class="w-full btn-primary font-black py-4 rounded-2xl text-sm tracking-widest mt-2">LOGIN</button>
+                <p id="loginError" class="text-[10px] font-bold text-red-500 hidden uppercase">Invalid ID or Password</p>
             </div>
-        </header>
+            
+            <!-- Settings Button -->
+            <button onclick="toggleSettings()" class="text-[10px] font-bold text-gray-300 uppercase tracking-widest hover:text-gray-500">Settings</button>
+            <div id="settingsPanel" class="hidden card p-6 mt-4 space-y-4 text-left">
+                <p class="text-xs font-black text-gray-800 uppercase tracking-widest">Change Credentials</p>
+                <div class="space-y-2">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase">New ID</label>
+                    <input type="text" id="newId" class="w-full p-3 text-xs font-bold">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase">New PW</label>
+                    <input type="text" id="newPw" class="w-full p-3 text-xs font-bold">
+                </div>
+                <button onclick="saveSettings()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl text-[10px] uppercase">Save Changes</button>
+            </div>
+        </div>
+    </div>
 
-        <!-- Form Section -->
-        <div class="card p-6 mb-6">
-            <h2 class="text-sm font-bold text-gray-400 uppercase mb-4 tracking-widest">New Entry</h2>
-            <form id="workForm" class="space-y-5">
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">DATE</label>
-                    <input type="date" id="date" required class="w-full bg-gray-50 rounded-xl border-0 p-3 text-gray-800 focus:ring-2 focus:ring-blue-500 shadow-sm">
+    <!-- Main App Content -->
+    <div id="appContent">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 px-2">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center shadow-lg shadow-blue-200">
+                    <span class="text-white font-black text-xs">M</span>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">SITE</label>
-                    <select id="site" required class="w-full bg-gray-50 rounded-xl border-0 p-3 text-gray-800 focus:ring-2 focus:ring-blue-500 shadow-sm">
+                    <p id="displayUserName" class="text-sm font-black text-gray-800 uppercase tracking-tight">ADMIN</p>
+                    <button onclick="logout()" class="text-[9px] font-black text-blue-500 uppercase tracking-widest hover:underline">Logout</button>
+                </div>
+            </div>
+            <div class="text-right">
+                <p id="currentDate" class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]"></p>
+            </div>
+        </div>
+
+        <!-- Input Form Card -->
+        <div class="card p-6 mb-6">
+            <h2 class="text-xl font-extrabold text-gray-800 tracking-tight mb-5">New Entry</h2>
+            <form id="workForm" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Date</label>
+                    <input type="date" id="date" required class="w-full p-4 text-sm font-semibold text-gray-700">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Site Location</label>
+                    <select id="site" required class="w-full p-4 text-sm font-semibold text-gray-700">
                         <option value="37 meadow St">37 meadow St</option>
                         <option value="48 California St">48 California St</option>
                         <option value="7 Gumflats way Botanic ridge">7 Gumflats way Botanic ridge</option>
@@ -43,179 +91,185 @@
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">START (10m step)</label>
-                        <select id="start" required class="w-full bg-gray-50 rounded-xl border-0 p-3 text-gray-800 focus:ring-2 focus:ring-blue-500 shadow-sm"></select>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Start</label>
+                        <select id="start" required class="w-full p-4 text-sm font-semibold text-gray-700"></select>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">FINISH (10m step)</label>
-                        <select id="finish" required class="w-full bg-gray-50 rounded-xl border-0 p-3 text-gray-800 focus:ring-2 focus:ring-blue-500 shadow-sm"></select>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Finish</label>
+                        <select id="finish" required class="w-full p-4 text-sm font-semibold text-gray-700"></select>
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all">Save Daily Log</button>
+                <button type="submit" class="w-full btn-primary font-extrabold py-4 rounded-2xl mt-2 text-sm tracking-wide">SAVE DAILY LOG</button>
             </form>
         </div>
 
-        <!-- List Section -->
+        <!-- Log List Card -->
         <div class="card p-6 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Recent Logs</h2>
-                <button onclick="clearLogs()" class="text-xs font-bold text-red-400 hover:text-red-600">RESET</button>
+            <div class="flex justify-between items-center mb-5">
+                <h2 class="text-sm font-extrabold text-gray-400 uppercase tracking-widest">Recent Records</h2>
+                <button onclick="clearLogs()" class="text-[10px] font-bold text-red-400">RESET ALL</button>
             </div>
-            <div id="logList" class="space-y-3 max-h-80 overflow-y-auto pr-1">
-                <!-- Logs will appear here -->
-            </div>
-            
-            <!-- Summary Section -->
-            <div class="mt-6 pt-4 border-t border-dashed border-gray-200">
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-sm text-gray-500">Total Hours</span>
-                    <span id="totalHoursDisplay" class="font-bold text-gray-800">0.00 hrs</span>
+            <div id="logList" class="space-y-3 max-h-72 overflow-y-auto pr-1"></div>
+            <div class="mt-8 pt-6 border-t border-gray-100 flex justify-between items-end">
+                <div class="space-y-1">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Estimated</p>
+                    <p id="totalAmountDisplay" class="text-3xl font-black text-blue-600 leading-none">$0.00</p>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-500 font-bold">Total Amount</span>
-                    <span id="totalAmountDisplay" class="text-xl font-black text-blue-600">$0.00</span>
-                </div>
+                <p id="totalHoursDisplay" class="text-xs font-extrabold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">0.00 hrs</p>
             </div>
         </div>
 
-        <!-- Action Section -->
-        <div class="grid grid-cols-1 gap-3">
-            <button onclick="exportToExcel()" class="w-full bg-gray-800 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center active:scale-[0.98] transition-all">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                Download Excel Invoice
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-3">
+            <button onclick="exportToExcel()" class="bg-white border border-gray-100 text-gray-800 font-extrabold py-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-1 active:scale-95 transition-all">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span class="text-[10px] uppercase tracking-tighter">Download Excel</span>
             </button>
-            <p class="text-[10px] text-center text-gray-400 uppercase tracking-tighter">Send to: ben@majorpm.com.au</p>
+            <button onclick="sendEmail()" class="bg-gray-900 text-white font-extrabold py-4 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-1 active:scale-95 transition-all">
+                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <span class="text-[10px] uppercase tracking-tighter text-gray-400 font-bold">Send to Ben</span>
+            </button>
         </div>
     </div>
 
     <script>
         const RATE = 33;
-        let logs = JSON.parse(localStorage.getItem('workLogs') || '[]');
+        let isLogged = localStorage.getItem('isLogged') === 'true';
+        let logs = [];
 
-        // Generate 10-minute intervals for time selects
+        if (!localStorage.getItem('adminId')) localStorage.setItem('adminId', 'admin');
+        if (!localStorage.getItem('adminPw')) localStorage.setItem('adminPw', '1234567');
+
+        function checkLogin() {
+            if (!isLogged) {
+                document.getElementById('loginOverlay').classList.remove('hidden');
+                document.getElementById('appContent').classList.add('hidden');
+            } else {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('appContent').classList.remove('hidden');
+                loadLogs();
+            }
+        }
+
+        function login() {
+            const id = document.getElementById('adminId').value;
+            const pw = document.getElementById('adminPw').value;
+            if (id === localStorage.getItem('adminId') && pw === localStorage.getItem('adminPw')) {
+                isLogged = true;
+                localStorage.setItem('isLogged', 'true');
+                checkLogin();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            isLogged = false;
+            localStorage.setItem('isLogged', 'false');
+            checkLogin();
+        }
+
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('hidden');
+            document.getElementById('newId').value = localStorage.getItem('adminId');
+            document.getElementById('newPw').value = localStorage.getItem('adminPw');
+        }
+
+        function saveSettings() {
+            const newId = document.getElementById('newId').value.trim();
+            const newPw = document.getElementById('newPw').value.trim();
+            if (newId && newPw) {
+                localStorage.setItem('adminId', newId);
+                localStorage.setItem('adminPw', newPw);
+                alert('Updated! Please login again.');
+                logout();
+            }
+        }
+
         function populateTimeSelects() {
             const startSelect = document.getElementById('start');
             const finishSelect = document.getElementById('finish');
+            startSelect.innerHTML = ''; finishSelect.innerHTML = '';
             for (let h = 0; h < 24; h++) {
                 for (let m = 0; m < 60; m += 10) {
                     const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                    const opt1 = new Option(time, time);
-                    const opt2 = new Option(time, time);
-                    startSelect.add(opt1);
-                    finishSelect.add(opt2);
+                    startSelect.add(new Option(time, time));
+                    finishSelect.add(new Option(time, time));
                 }
             }
-            startSelect.value = "08:00";
-            finishSelect.value = "16:00";
+            startSelect.value = "08:00"; finishSelect.value = "16:00";
         }
 
-        // Initialize
+        function loadLogs() {
+            logs = JSON.parse(localStorage.getItem('workLogs_admin') || '[]');
+            renderLogs();
+        }
+
         document.getElementById('date').valueAsDate = new Date();
         document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
         populateTimeSelects();
+        checkLogin();
 
-        const form = document.getElementById('workForm');
-        form.addEventListener('submit', (e) => {
+        document.getElementById('workForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            
             const date = document.getElementById('date').value;
             const site = document.getElementById('site').value;
             const start = document.getElementById('start').value;
             const finish = document.getElementById('finish').value;
-
             const startTime = new Date(`2000-01-01T${start}`);
             const finishTime = new Date(`2000-01-01T${finish}`);
             let diff = (finishTime - startTime) / 1000 / 60 / 60;
             if (diff < 0) diff += 24;
-
-            const totalHours = diff.toFixed(2);
-            const remark = (diff * RATE).toFixed(2);
-
-            const entry = {
-                date,
-                site,
-                start,
-                finish,
-                totalHours,
-                remark: `$${remark}`
-            };
-
-            logs.push(entry);
-            saveAndRefresh();
-        });
-
-        function saveAndRefresh() {
-            localStorage.setItem('workLogs', JSON.stringify(logs));
+            logs.push({ date, site, start, finish, totalHours: diff.toFixed(2), remark: `$${(diff * RATE).toFixed(2)}` });
+            localStorage.setItem('workLogs_admin', JSON.stringify(logs));
             renderLogs();
-        }
+        });
 
         function renderLogs() {
             const list = document.getElementById('logList');
-            list.innerHTML = logs.length === 0 ? '<p class="text-gray-400 text-center py-8 text-sm italic">No logs recorded yet.</p>' : '';
-            
-            let totalH = 0;
-            let totalA = 0;
-
+            list.innerHTML = logs.length === 0 ? '<div class="text-center py-10 text-xs font-bold text-gray-300 uppercase tracking-widest">No Records</div>' : '';
+            let totalH = 0, totalA = 0;
             logs.slice().reverse().forEach((log, index) => {
                 totalH += parseFloat(log.totalHours);
                 totalA += parseFloat(log.remark.replace('$', ''));
-
                 const div = document.createElement('div');
-                div.className = 'p-4 rounded-2xl text-sm bg-gray-50 border border-gray-100 flex justify-between items-center animate-in fade-in slide-in-from-bottom-2 duration-300';
+                div.className = 'p-4 rounded-2xl bg-gray-50 border border-gray-100 flex justify-between items-center mb-2';
                 div.innerHTML = `
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-1">
-                            <span class="font-black text-gray-800">${log.date.split('-').slice(1).reverse().join('/')}</span>
-                            <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">${log.site.split(' ')[0]}...</span>
+                            <span class="font-extrabold text-gray-800 text-sm">${log.date.split('-').reverse().slice(0,2).join('/')}</span>
+                            <span class="text-[9px] font-black text-blue-500 uppercase tracking-tighter">${log.site.substring(0,15)}...</span>
                         </div>
-                        <div class="text-xs text-gray-500 font-medium">${log.start} - ${log.finish} (${log.totalHours} hrs)</div>
+                        <div class="text-[10px] text-gray-400 font-bold uppercase tracking-tight">${log.start} - ${log.finish} (${log.totalHours} hrs)</div>
                     </div>
-                    <div class="text-right flex items-center gap-3">
-                        <span class="font-bold text-gray-800">${log.remark}</span>
-                        <button onclick="deleteLog(${logs.length - 1 - index})" class="text-gray-300 hover:text-red-500 transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
-                    </div>
-                `;
+                    <div class="text-right flex items-center gap-4">
+                        <span class="font-black text-gray-800 text-sm">${log.remark}</span>
+                        <button onclick="deleteLog(${logs.length - 1 - index})" class="text-gray-300 hover:text-red-500">✕</button>
+                    </div>`;
                 list.appendChild(div);
             });
-
             document.getElementById('totalHoursDisplay').innerText = `${totalH.toFixed(2)} hrs`;
             document.getElementById('totalAmountDisplay').innerText = `$${totalA.toFixed(2)}`;
         }
 
-        function deleteLog(index) {
-            logs.splice(index, 1);
-            saveAndRefresh();
-        }
-
-        function clearLogs() {
-            if(confirm('Reset all logs for the new period?')) {
-                logs = [];
-                saveAndRefresh();
-            }
-        }
+        function deleteLog(index) { if(confirm('Delete?')) { logs.splice(index, 1); localStorage.setItem('workLogs_admin', JSON.stringify(logs)); renderLogs(); } }
+        function clearLogs() { if(confirm('Reset all?')) { logs = []; localStorage.setItem('workLogs_admin', JSON.stringify(logs)); renderLogs(); } }
 
         function exportToExcel() {
-            if (logs.length === 0) return alert('No logs to export');
-            
-            const worksheetData = [
-                ["DATE", "SITE", "START", "FINISH", "WORKING HOURS", "REMARK"],
-                ...logs.map(l => [l.date, l.site, l.start, l.finish, l.totalHours, l.remark])
-            ];
-
+            if (logs.length === 0) return alert('No logs');
+            const worksheetData = [["DATE", "SITE", "START", "FINISH", "WORKING HOURS", "REMARK"], ...logs.map(l => [l.date, l.site, l.start, l.finish, l.totalHours, l.remark])];
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-            
-            // Set column widths
-            ws['!cols'] = [{wch: 12}, {wch: 30}, {wch: 10}, {wch: 10}, {wch: 15}, {wch: 15}];
-
             XLSX.utils.book_append_sheet(wb, ws, "Invoice");
-            XLSX.writeFile(wb, `Invoice_MajorPM_${new Date().toISOString().slice(0,10)}.xlsx`);
+            XLSX.writeFile(wb, `Invoice_Admin_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
-        renderLogs();
+        function sendEmail() {
+            const subject = encodeURIComponent(`Invoice - Admin (${new Date().toLocaleDateString('en-AU')})`);
+            const body = encodeURIComponent(`Hi Ben,\n\nPlease find my work invoice attached.\n\nTotal Hours: ${document.getElementById('totalHoursDisplay').innerText}\nTotal Amount: ${document.getElementById('totalAmountDisplay').innerText}\n\nBest regards,\nAdmin`);
+            window.location.href = `mailto:ben@majorpm.com.au?subject=${subject}&body=${body}`;
+        }
     </script>
 </body>
 </html>
